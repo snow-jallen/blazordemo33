@@ -1,0 +1,34 @@
+﻿@using Shared
+@inject IHttpClientFactory httpClientFactory
+<h3>Post Component</h3>
+
+<EditForm Model="post" OnValidSubmit="HandleSubmit">
+    <label>
+        Title
+        <input type="text" @bind="post.Title" />
+    </label>
+    <label>
+        Content
+        <input type="text" @bind="post.Content" />
+    </label>
+    <button type="submit">Submit</button>
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+</EditForm>
+<p>@error</p>
+
+@code
+{
+    async Task HandleSubmit()
+    {
+        var httpClient = httpClientFactory.CreateClient("api");
+        var response = await httpClient.PostAsJsonAsync("api/Post", post);
+        if(!response.IsSuccessStatusCode)
+        {
+            error = await response.Content.ReadAsStringAsync();
+        }
+    }
+
+    Post post = new();
+    string error;
+}
