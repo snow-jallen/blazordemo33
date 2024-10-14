@@ -20,20 +20,29 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.x'
+          
+      - name: test app
+        run: dotnet test
 
-      - name: Build with dotnet
-        run: dotnet build --configuration Release
+      - name: publish web
+        run: cd BlazorApp1 && dotnet publish -c Release -o ${{env.DOTNET_ROOT}}/myweb
 
-      - name: dotnet publish
-        run: dotnet publish -c Release -o ${{env.DOTNET_ROOT}}/myapp
+      - name: publish api
+        run: cd WebApi && dotnet publish -c Release -o ${{env.DOTNET_ROOT}}/myapi
 
-      - name: Upload artifact for deployment job
+      - name: Upload artifact for deployment job (api)
         uses: actions/upload-artifact@v4
         with:
-          name: .net-app
-          path: ${{env.DOTNET_ROOT}}/myapp
+          name: .net-api
+          path: ${{env.DOTNET_ROOT}}/myapi
 
-  deploy:
+      - name: Upload artifact for deployment job (web)
+        uses: actions/upload-artifact@v4
+        with:
+          name: .net-web
+          path: ${{env.DOTNET_ROOT}}/myweb
+
+  deploy_api:
     runs-on: ubuntu-latest
     needs: build
     environment:
@@ -44,9 +53,9 @@ jobs:
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
-          name: .net-app
+          name: .net-api
       
-      - name: Deploy to Azure Web App
+      - name: Deploy to Azure API
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
@@ -54,3 +63,25 @@ jobs:
           slot-name: 'Production'
           package: .
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_7EF4B3560401454394B0B021C705EF29 }}
+
+  deploy_web:
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: 'Production'
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+    
+    steps:
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: .net-web
+      
+      - name: Deploy to Azure WEB
+        id: deploy-to-webapp
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'demoapi23421'
+          slot-name: 'Production'
+          package: .
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_7EF4B3560401454394B0B021C705EF29 }}          
